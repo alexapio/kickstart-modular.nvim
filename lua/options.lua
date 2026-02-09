@@ -57,6 +57,11 @@ vim.o.splitbelow = true
 vim.o.list = true
 vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
 
+-- Show tabs as 4 spaces, expanded
+vim.o.tabstop = 4
+vim.o.shiftwidth = 4
+vim.o.expandtab = true
+
 -- Preview substitutions live, as you type!
 vim.o.inccommand = 'split'
 
