@@ -107,3 +107,71 @@ require 'lazy-plugins'
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+--
+-- Override native clipboard provider for when remoting to Linux, not on mac.
+if os.getenv 'SSH_CONNECTION' and vim.fn.has 'clipboard' == 0 then
+  -- Helper function to copy using OSC52
+  local function osc52_copy()
+    return function(lines, _)
+      local text = table.concat(lines, '\n')
+      -- Use base64 to encode the text for OSC52
+      local b64 = vim.fn.system('base64', text)
+      -- Emit the OSC52 escape sequence to stdout
+      io.write('\27]52;c;' .. b64 .. '\7')
+    end
+  end
+
+  -- Set vim clipboard provider to OSC52
+  vim.g.clipboard = {
+    name = 'osc52',
+    copy = {
+      ['+'] = osc52_copy(),
+      ['*'] = osc52_copy(),
+    },
+    paste = {
+      -- Paste falls back to unnamed register (OSC52 is write-only)
+      ['+'] = function()
+        return { vim.fn.getreg '"' }
+      end,
+      ['*'] = function()
+        return { vim.fn.getreg '"' }
+      end,
+    },
+  }
+end
+--
+-- Override clipboard if we are over SSH
+if os.getenv 'SSH_CONNECTION' then
+  -- Helper function to copy using OSC52
+  local function osc52_copy()
+    return function(lines, _)
+      vim.notify 'OSC52 copy triggered'
+      local text = table.concat(lines, '\n')
+      -- Use base64 to encode the text for OSC52
+      local b64 = vim.fn.system('base64', text)
+      -- Emit the OSC52 escape sequence to stdout
+      io.write('\27]52;c;' .. b64 .. '\7')
+    end
+  end
+
+  -- Set vim clipboard provider to OSC52
+  vim.g.clipboard = {
+    name = 'osc52',
+    copy = {
+      ['+'] = osc52_copy(),
+      ['*'] = osc52_copy(),
+    },
+    paste = {
+      ['+'] = function()
+        local text = vim.fn.getreg '"'
+        local lines = vim.split(text, '\n', true) -- true = keep empty items
+        return lines
+      end,
+      ['*'] = function()
+        local text = vim.fn.getreg '"'
+        local lines = vim.split(text, '\n', true)
+        return lines
+      end,
+    },
+  }
+end
